@@ -16,6 +16,7 @@ import android.os.ParcelUuid
 import android.text.format.DateFormat
 import android.util.Log
 import android.view.WindowManager
+import ua.com.vald_zx.car.core.Constants.DeviceName
 import java.util.*
 
 class MainActivity : Activity() {
@@ -188,7 +189,7 @@ class MainActivity : Activity() {
         if (!checkBluetoothSupport(bluetoothAdapter)) {
             finish()
         }
-        bluetoothAdapter.name = "RP3 CAR"
+        bluetoothAdapter.name = DeviceName
         // Register for system Bluetooth events
         val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
         registerReceiver(mBluetoothReceiver, filter)
