@@ -5,6 +5,8 @@
     <string name="label_device_address">Device address:</string>
     <string name="label_state">State:</string>
     <string name="no_data">No data</string>
+    <string name="turn_on">Turn on</string>
+    <string name="turn_off">Turn off</string>
     <string name="connected">Connected</string>
     <string name="disconnected">Disconnected</string>
     <string name="title_devices">BLE Device Scan</string>

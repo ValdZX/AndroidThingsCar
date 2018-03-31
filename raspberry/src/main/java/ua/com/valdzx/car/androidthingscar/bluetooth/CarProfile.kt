@@ -5,9 +5,13 @@ import android.bluetooth.BluetoothGattCharacteristic.*
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothGattService.SERVICE_TYPE_PRIMARY
+import ua.com.vald_zx.car.core.Constants.PIN_SERVICE
+import ua.com.vald_zx.car.core.Constants.PIN_STATE
 import java.util.*
 
-object TimeProfile {
+object CarProfile {
+
+
     val TIME_SERVICE = UUID.fromString("d72a9f56-86ec-4843-8d50-6c69d68b7007")
     val CURRENT_TIME = UUID.fromString("75d57f73-bb55-4f38-b0cf-40bf04c6e4e9")
     val LOCAL_TIME_INFO = UUID.fromString("25570166-dc85-47fa-a81d-5c41e367bf36")
@@ -36,6 +40,13 @@ object TimeProfile {
     private val DST_SINGLE: Byte = 0x4
     private val DST_DOUBLE: Byte = 0x8
     private val DST_UNKNOWN = 0xFF.toByte()
+
+    fun createPinService(): BluetoothGattService {
+        val service = BluetoothGattService(PIN_SERVICE, SERVICE_TYPE_PRIMARY)
+        val pin = BluetoothGattCharacteristic(PIN_STATE, PROPERTY_READ or PROPERTY_NOTIFY or PROPERTY_WRITE, PERMISSION_READ or PERMISSION_WRITE)
+        service.addCharacteristic(pin)
+        return service
+    }
 
     fun createTimeService(): BluetoothGattService {
         val service = BluetoothGattService(TIME_SERVICE, SERVICE_TYPE_PRIMARY)
@@ -73,40 +84,34 @@ object TimeProfile {
     fun getLocalTimeInfo(timestamp: Long): ByteArray {
         val time = Calendar.getInstance()
         time.timeInMillis = timestamp
-
         val field = ByteArray(2)
-
-        // Time zone
         val zoneOffset = time.get(Calendar.ZONE_OFFSET) / FIFTEEN_MINUTE_MILLIS // 15 minute intervals
         field[0] = zoneOffset.toByte()
-
-        // DST Offset
         val dstOffset = time.get(Calendar.DST_OFFSET) / HALF_HOUR_MILLIS // 30 minute intervals
         field[1] = getDstOffsetCode(dstOffset)
-
         return field
     }
 
     private fun getDayOfWeekCode(dayOfWeek: Int): Byte {
-        when (dayOfWeek) {
-            Calendar.MONDAY -> return DAY_MONDAY
-            Calendar.TUESDAY -> return DAY_TUESDAY
-            Calendar.WEDNESDAY -> return DAY_WEDNESDAY
-            Calendar.THURSDAY -> return DAY_THURSDAY
-            Calendar.FRIDAY -> return DAY_FRIDAY
-            Calendar.SATURDAY -> return DAY_SATURDAY
-            Calendar.SUNDAY -> return DAY_SUNDAY
-            else -> return DAY_UNKNOWN
+        return when (dayOfWeek) {
+            Calendar.MONDAY -> DAY_MONDAY
+            Calendar.TUESDAY -> DAY_TUESDAY
+            Calendar.WEDNESDAY -> DAY_WEDNESDAY
+            Calendar.THURSDAY -> DAY_THURSDAY
+            Calendar.FRIDAY -> DAY_FRIDAY
+            Calendar.SATURDAY -> DAY_SATURDAY
+            Calendar.SUNDAY -> DAY_SUNDAY
+            else -> DAY_UNKNOWN
         }
     }
 
     private fun getDstOffsetCode(rawOffset: Int): Byte {
-        when (rawOffset) {
-            0 -> return DST_STANDARD
-            1 -> return DST_HALF
-            2 -> return DST_SINGLE
-            4 -> return DST_DOUBLE
-            else -> return DST_UNKNOWN
+        return when (rawOffset) {
+            0 -> DST_STANDARD
+            1 -> DST_HALF
+            2 -> DST_SINGLE
+            4 -> DST_DOUBLE
+            else -> DST_UNKNOWN
         }
     }
 }

@@ -10,16 +10,28 @@ import android.view.View.VISIBLE
 import com.marcoscg.easypermissions.EasyPermissions
 import kotlinx.android.synthetic.main.activity_main.*
 import ua.com.vald_zx.car.core.Constants.DeviceName
+import ua.com.valdzx.car.terminal.bluetooth.BluetoothManager
 
 class MainActivity : AppCompatActivity() {
 
-    private val tag = MainActivity::class.java.simpleName
-
     private val accessCoarseLocationRequest = 321658
+
     private val bluetoothManager: BluetoothManager by lazy {
         val manager = BluetoothManager(this)
-        manager.connectionListener = { connectionState.setText(if (it) R.string.connected else R.string.disconnected) }
+        manager.connectionListener = {
+            connectionState.setText(if (it) R.string.connected else R.string.disconnected)
+            if (it) loadCurrentState()
+        }
+        manager.pinRead = { updatePinState(it) }
         manager
+    }
+
+    private fun updatePinState(currentPinState: Boolean) {
+        pinState.isChecked = currentPinState
+        changePin.setText(if (currentPinState) R.string.turn_off else R.string.turn_on)
+        changePin.setOnClickListener {
+            bluetoothManager.setPinState(!currentPinState)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,5 +86,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestPermission() {
         EasyPermissions.requestPermissions(this, arrayOf(EasyPermissions.ACCESS_FINE_LOCATION), accessCoarseLocationRequest)
+    }
+
+    private fun loadCurrentState() {
+        bluetoothManager.loadState()
     }
 }

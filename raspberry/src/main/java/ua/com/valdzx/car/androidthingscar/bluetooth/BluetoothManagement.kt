@@ -16,7 +16,10 @@ import android.util.Log
 import ua.com.vald_zx.car.core.Constants
 import java.util.*
 
-class BluetoothManagement(private val activity: Activity) {
+class BluetoothManagement(
+        private val activity: Activity,
+        public var statePinProvider: () -> Boolean = { false },
+        public var statePinChange: (Boolean) -> Unit = {}) {
     private val TAG = BluetoothManagement::class.java.simpleName
 
     private var mBluetoothManager: BluetoothManager? = null
@@ -62,91 +65,29 @@ class BluetoothManagement(private val activity: Activity) {
             }
         }
 
-        override fun onCharacteristicReadRequest(device: BluetoothDevice, requestId: Int, offset: Int,
-                                                 characteristic: BluetoothGattCharacteristic) {
-            val now = System.currentTimeMillis()
-            when {
-                TimeProfile.CURRENT_TIME == characteristic.uuid -> {
-                    Log.i(TAG, "Read CurrentTime")
-                    mBluetoothGattServer!!.sendResponse(device,
-                            requestId,
-                            BluetoothGatt.GATT_SUCCESS,
-                            0,
-                            TimeProfile.getExactTime(now, TimeProfile.ADJUST_NONE))
-                }
-                TimeProfile.LOCAL_TIME_INFO == characteristic.uuid -> {
-                    Log.i(TAG, "Read LocalTimeInfo")
-                    mBluetoothGattServer!!.sendResponse(device,
-                            requestId,
-                            BluetoothGatt.GATT_SUCCESS,
-                            0,
-                            TimeProfile.getLocalTimeInfo(now))
+        override fun onCharacteristicReadRequest(device: BluetoothDevice, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic) {
+            when (characteristic.uuid) {
+                Constants.PIN_STATE -> {
+                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, ByteArray(1, { (if (statePinProvider.invoke()) 1 else 0).toByte() }))
                 }
                 else -> {
                     Log.w(TAG, "Invalid Characteristic Read: " + characteristic.uuid)
-                    mBluetoothGattServer!!.sendResponse(device,
-                            requestId,
-                            BluetoothGatt.GATT_FAILURE,
-                            0,
-                            null)
-                }
-            }
-        }
-
-        override fun onDescriptorReadRequest(device: BluetoothDevice, requestId: Int, offset: Int, descriptor: BluetoothGattDescriptor) {
-            if (TimeProfile.CLIENT_CONFIG == descriptor.uuid) {
-                Log.d(TAG, "Config descriptor read")
-                val returnValue: ByteArray = if (mRegisteredDevices.contains(device)) {
-                    BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                } else {
-                    BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
-                }
-                mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, returnValue)
-            } else {
-                Log.w(TAG, "Unknown descriptor read request")
-                mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null)
-            }
-        }
-
-        override fun onDescriptorWriteRequest(device: BluetoothDevice,
-                                              requestId: Int,
-                                              descriptor: BluetoothGattDescriptor,
-                                              preparedWrite: Boolean,
-                                              responseNeeded: Boolean,
-                                              offset: Int,
-                                              value: ByteArray) {
-            if (TimeProfile.CLIENT_CONFIG == descriptor.uuid) {
-                if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, value)) {
-                    Log.d(TAG, "Subscribe device to notifications: $device")
-                    mRegisteredDevices.add(device)
-                } else if (Arrays.equals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE, value)) {
-                    Log.d(TAG, "Unsubscribe device from notifications: $device")
-                    mRegisteredDevices.remove(device)
-                }
-
-                if (responseNeeded) {
-                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
-                }
-            } else {
-                Log.w(TAG, "Unknown descriptor write request")
-                if (responseNeeded) {
                     mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null)
                 }
             }
         }
-    }
 
-    private val mTimeReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val adjustReason: Byte
-            when (intent.action) {
-                Intent.ACTION_TIME_CHANGED -> adjustReason = TimeProfile.ADJUST_MANUAL
-                Intent.ACTION_TIMEZONE_CHANGED -> adjustReason = TimeProfile.ADJUST_TIMEZONE
-                Intent.ACTION_TIME_TICK -> adjustReason = TimeProfile.ADJUST_NONE
-                else -> adjustReason = TimeProfile.ADJUST_NONE
+        override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
+            when (characteristic.uuid) {
+                Constants.PIN_STATE -> {
+                    statePinChange.invoke(value[0] == 0.toByte())
+                    if (responseNeeded) mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
+                }
+                else -> {
+                    Log.w(TAG, "Invalid Characteristic Write: " + characteristic.uuid)
+                    if (responseNeeded) mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null)
+                }
             }
-            val now = System.currentTimeMillis()
-            notifyRegisteredDevices(now, adjustReason)
         }
     }
 
@@ -174,30 +115,25 @@ class BluetoothManagement(private val activity: Activity) {
             Log.i(TAG, "No subscribers registered")
             return
         }
-        val exactTime = TimeProfile.getExactTime(timestamp, adjustReason)
+        val exactTime = CarProfile.getExactTime(timestamp, adjustReason)
 
         Log.i(TAG, "Sending update to " + mRegisteredDevices.size + " subscribers")
         for (device in mRegisteredDevices) {
-            val timeCharacteristic = mBluetoothGattServer!!
-                    .getService(TimeProfile.TIME_SERVICE)
-                    .getCharacteristic(TimeProfile.CURRENT_TIME)
-            timeCharacteristic.value = exactTime
+            val timeCharacteristic = mBluetoothGattServer?.getService(CarProfile.TIME_SERVICE)?.getCharacteristic(CarProfile.CURRENT_TIME)
+            timeCharacteristic?.value = exactTime
             mBluetoothGattServer?.notifyCharacteristicChanged(device, timeCharacteristic, false)
         }
     }
 
     private fun checkBluetoothSupport(bluetoothAdapter: BluetoothAdapter?): Boolean {
-
         if (bluetoothAdapter == null) {
             Log.w(TAG, "Bluetooth is not supported")
             return false
         }
-
         if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Log.w(TAG, "Bluetooth LE is not supported")
             return false
         }
-
         return true
     }
 
@@ -219,7 +155,7 @@ class BluetoothManagement(private val activity: Activity) {
         val data = AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
                 .setIncludeTxPowerLevel(false)
-                .addServiceUuid(ParcelUuid(TimeProfile.TIME_SERVICE))
+                .addServiceUuid(ParcelUuid(CarProfile.TIME_SERVICE))
                 .build()
 
         mBluetoothLeAdvertiser?.startAdvertising(settings, data, mAdvertiseCallback)
@@ -237,7 +173,8 @@ class BluetoothManagement(private val activity: Activity) {
             Log.w(TAG, "Unable to create GATT server")
             return
         }
-        mBluetoothGattServer?.addService(TimeProfile.createTimeService())
+        mBluetoothGattServer?.addService(CarProfile.createPinService())
+//        mBluetoothGattServer?.addService(CarProfile.createTimeService())
 //        updateLocalUi(System.currentTimeMillis())
     }
 
@@ -257,14 +194,5 @@ class BluetoothManagement(private val activity: Activity) {
     }
 
     fun onStart() {
-        val filter = IntentFilter()
-        filter.addAction(Intent.ACTION_TIME_TICK)
-        filter.addAction(Intent.ACTION_TIME_CHANGED)
-        filter.addAction(Intent.ACTION_TIMEZONE_CHANGED)
-        activity.registerReceiver(mTimeReceiver, filter)
-    }
-
-    fun onStop() {
-        activity.unregisterReceiver(mTimeReceiver)
     }
 }
