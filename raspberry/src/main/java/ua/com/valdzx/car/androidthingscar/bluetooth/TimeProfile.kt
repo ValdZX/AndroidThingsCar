@@ -1,4 +1,4 @@
-package ua.com.valdzx.car.androidthingscar
+package ua.com.valdzx.car.androidthingscar.bluetooth
 
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattCharacteristic.*
@@ -8,7 +8,6 @@ import android.bluetooth.BluetoothGattService.SERVICE_TYPE_PRIMARY
 import java.util.*
 
 object TimeProfile {
-    private val TAG = TimeProfile::class.java.simpleName
     val TIME_SERVICE = UUID.fromString("d72a9f56-86ec-4843-8d50-6c69d68b7007")
     val CURRENT_TIME = UUID.fromString("75d57f73-bb55-4f38-b0cf-40bf04c6e4e9")
     val LOCAL_TIME_INFO = UUID.fromString("25570166-dc85-47fa-a81d-5c41e367bf36")
