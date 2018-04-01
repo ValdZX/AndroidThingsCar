@@ -10,7 +10,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.os.ParcelUuid
 import android.util.Log
 import ua.com.vald_zx.car.core.Constants
@@ -62,6 +61,8 @@ class BluetoothManagement(
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 Log.i(TAG, "BluetoothDevice DISCONNECTED: $device")
                 mRegisteredDevices.remove(device)
+                stopAdvertising()
+                startAdvertising()
             }
         }
 
@@ -80,7 +81,7 @@ class BluetoothManagement(
         override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
             when (characteristic.uuid) {
                 Constants.PIN_STATE -> {
-                    statePinChange.invoke(value[0] == 0.toByte())
+                    statePinChange.invoke(value[0] != 0.toByte())
                     if (responseNeeded) mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
                 }
                 else -> {
@@ -94,12 +95,8 @@ class BluetoothManagement(
     init {
         mBluetoothManager = activity.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = mBluetoothManager!!.adapter
-        if (!checkBluetoothSupport(bluetoothAdapter)) {
-            //finish()
-        }
         bluetoothAdapter.name = Constants.DeviceName
-        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
-        activity.registerReceiver(mBluetoothReceiver, filter)
+        activity.registerReceiver(mBluetoothReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
         if (!bluetoothAdapter.isEnabled) {
             Log.d(TAG, "Bluetooth is currently disabled...enabling")
             bluetoothAdapter.enable()
@@ -125,20 +122,9 @@ class BluetoothManagement(
         }
     }
 
-    private fun checkBluetoothSupport(bluetoothAdapter: BluetoothAdapter?): Boolean {
-        if (bluetoothAdapter == null) {
-            Log.w(TAG, "Bluetooth is not supported")
-            return false
-        }
-        if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Log.w(TAG, "Bluetooth LE is not supported")
-            return false
-        }
-        return true
-    }
-
     private fun startAdvertising() {
         val bluetoothAdapter = mBluetoothManager!!.adapter
+
         mBluetoothLeAdvertiser = bluetoothAdapter.bluetoothLeAdvertiser
         if (mBluetoothLeAdvertiser == null) {
             Log.w(TAG, "Failed to create advertiser")
@@ -155,7 +141,7 @@ class BluetoothManagement(
         val data = AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
                 .setIncludeTxPowerLevel(false)
-                .addServiceUuid(ParcelUuid(CarProfile.TIME_SERVICE))
+                .addServiceUuid(ParcelUuid(Constants.PIN_SERVICE))
                 .build()
 
         mBluetoothLeAdvertiser?.startAdvertising(settings, data, mAdvertiseCallback)
@@ -174,8 +160,6 @@ class BluetoothManagement(
             return
         }
         mBluetoothGattServer?.addService(CarProfile.createPinService())
-//        mBluetoothGattServer?.addService(CarProfile.createTimeService())
-//        updateLocalUi(System.currentTimeMillis())
     }
 
     private fun stopServer() {

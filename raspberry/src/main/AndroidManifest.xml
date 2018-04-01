@@ -8,7 +8,7 @@
     <application>
         <uses-library android:name="com.google.android.things" />
 
-        <activity android:name="ua.com.valdzx.car.androidthingscar.MainActivity" >
+        <activity android:name="ua.com.valdzx.car.androidthingscar.CarActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

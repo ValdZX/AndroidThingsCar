@@ -3,7 +3,7 @@ package ua.com.vald_zx.car.core
 import java.util.*
 
 object Constants {
-    const val DeviceName = "RP3 CAR"
+    const val DeviceName = "RPI3 CAR"
     const val commandService = "CommandService"
 
     val PIN_SERVICE = UUID.fromString("a7ad9c7d-8913-4f48-937d-5312dcfa5a83")

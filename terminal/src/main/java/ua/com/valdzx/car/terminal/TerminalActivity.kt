@@ -12,7 +12,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import ua.com.vald_zx.car.core.Constants.DeviceName
 import ua.com.valdzx.car.terminal.bluetooth.BluetoothManager
 
-class MainActivity : AppCompatActivity() {
+class TerminalActivity : AppCompatActivity() {
 
     private val accessCoarseLocationRequest = 321658
 
@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
         manager.connectionListener = {
             connectionState.setText(if (it) R.string.connected else R.string.disconnected)
             if (it) loadCurrentState()
+            if (!it) findDevice()
         }
         manager.pinRead = { updatePinState(it) }
         manager

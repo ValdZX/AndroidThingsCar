@@ -59,6 +59,12 @@ class BluetoothLeService : Service() {
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic)
         }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic)
+            }
+        }
     }
 
 

@@ -31,6 +31,7 @@ class BluetoothManager(private val activity: Activity,
     var isConnected: Boolean = false
         private set(value) {
             field = value
+            if(!isConnected)device = null
             connectionListener.invoke(value)
         }
 
@@ -68,6 +69,9 @@ class BluetoothManager(private val activity: Activity,
     }
 
     fun connect(device: BluetoothDevice) {
+        if(this.device != null && this.device?.address == device.address) {
+            return
+        }
         this.device = device
         if (bluetoothLeService == null) {
             val gattServiceIntent = Intent(activity, BluetoothLeService::class.java)
@@ -84,6 +88,7 @@ class BluetoothManager(private val activity: Activity,
                 bluetoothLeService = (service as BluetoothLeService.LocalBinder).service
                 bluetoothLeService?.initialize()
                 bluetoothLeService?.connect(device.address)
+                registerUpdateReceiver()
             }
 
             override fun onServiceDisconnected(componentName: ComponentName) {
@@ -105,7 +110,7 @@ class BluetoothManager(private val activity: Activity,
                 BluetoothLeService.ACTION_GATT_DISCONNECTED -> isConnected = false
                 BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED -> loadState()
                 BluetoothLeService.ACTION_DATA_AVAILABLE -> {
-                    pinRead.invoke(pinState.value[0] == 0.toByte())
+                    pinRead.invoke(pinState.value[0] != 0.toByte())
                 }
             }
         }
@@ -121,8 +126,12 @@ class BluetoothManager(private val activity: Activity,
 
     fun onResume() {
         enableIfNeed()
+        device?.let { connect(it) }
+        registerUpdateReceiver()
+    }
+
+    private fun registerUpdateReceiver() {
         if (device != null) {
-            device?.let { connect(it) }
             val intentFilter = IntentFilter()
             intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED)
             intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED)
@@ -139,11 +148,11 @@ class BluetoothManager(private val activity: Activity,
                 service.characteristics.forEach { char ->
                     if (char.uuid == PIN_STATE) {
                         pinState = char
+                        bluetoothLeService?.readCharacteristic(pinState)
                     }
                 }
             }
         }
-        bluetoothLeService?.readCharacteristic(pinState)
     }
 
     fun setPinState(b: Boolean) {
