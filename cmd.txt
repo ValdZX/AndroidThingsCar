@@ -5,3 +5,14 @@ adb connect 192.168.31.70
 
 
 am startservice -n com.google.wifisetup/.WifiSetupService -a WifiSetupService.Connect -e ssid Exzotus -e passphrase RouterMI
+
+
+L293D
+
+BCM25 == ENABLE1 == LEFT
+BCM16 == INPUT1 == LEFT == ??
+BCM12 == INPUT2 == LEFT == ??
+
+BCM5 == ENABLE2 == RIGHT
+BCM26 == INPUT4 == RIGHT == ??
+BCM6 == INPUT3 == RIGHT == ??
