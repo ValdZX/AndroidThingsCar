@@ -7,6 +7,7 @@ import android.support.v4.content.PermissionChecker.PERMISSION_GRANTED
 import android.support.v7.app.AppCompatActivity
 import android.view.View.GONE
 import android.view.View.VISIBLE
+import android.widget.SeekBar
 import com.marcoscg.easypermissions.EasyPermissions
 import kotlinx.android.synthetic.main.activity_main.*
 import ua.com.vald_zx.car.core.Constants.DeviceName
@@ -24,21 +25,42 @@ class TerminalActivity : AppCompatActivity() {
             if (!it) findDevice()
         }
         manager.pinRead = { updatePinState(it) }
+        manager.pwmRead = { updatePwmState(it) }
         manager
     }
 
     private fun updatePinState(currentPinState: Boolean) {
         pinState.isChecked = currentPinState
         changePin.setText(if (currentPinState) R.string.turn_off else R.string.turn_on)
-        changePin.setOnClickListener {
-            bluetoothManager.setPinState(!currentPinState)
-        }
+    }
+
+    private fun updatePwmState(pwmState: Int) {
+        pwmProgress.progress = pwmState
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         requestPermission()
+
+        changePin.setOnClickListener {
+            bluetoothManager.setPinState(!pinState.isChecked)
+        }
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener{
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                bluetoothManager.setPwmState(progress)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                //TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                //TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+            }
+
+        })
     }
 
     override fun onResume() {

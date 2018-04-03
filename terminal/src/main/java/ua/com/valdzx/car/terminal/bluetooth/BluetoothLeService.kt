@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.util.Log
+import ua.com.vald_zx.car.core.Constants.UUID_CHANGED
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
@@ -75,13 +76,7 @@ class BluetoothLeService : Service() {
 
     private fun broadcastUpdate(action: String, characteristic: BluetoothGattCharacteristic) {
         val intent = Intent(action)
-            val data = characteristic.value
-            if (data != null && data.isNotEmpty()) {
-                val stringBuilder = StringBuilder(data.size)
-                for (byteChar in data) stringBuilder.append(String.format("%02X ", byteChar))
-                intent.putExtra(EXTRA_DATA, String(data) + "\n" + stringBuilder.toString())
-            }
-//        }
+        intent.putExtra(UUID_CHANGED, characteristic.uuid)
         sendBroadcast(intent)
     }
 
@@ -196,6 +191,5 @@ class BluetoothLeService : Service() {
         val ACTION_GATT_DISCONNECTED = "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED"
         val ACTION_GATT_SERVICES_DISCOVERED = "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED"
         val ACTION_DATA_AVAILABLE = "com.example.bluetooth.le.ACTION_DATA_AVAILABLE"
-        val EXTRA_DATA = "com.example.bluetooth.le.EXTRA_DATA"
     }
 }

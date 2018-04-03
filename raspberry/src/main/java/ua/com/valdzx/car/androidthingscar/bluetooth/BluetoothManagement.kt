@@ -13,12 +13,18 @@ import android.content.IntentFilter
 import android.os.ParcelUuid
 import android.util.Log
 import ua.com.vald_zx.car.core.Constants
+import ua.com.vald_zx.car.core.Constants.DeviceName
+import ua.com.vald_zx.car.core.Constants.PIN_STATE
+import ua.com.vald_zx.car.core.Constants.PWM_STATE
+import ua.com.vald_zx.car.core.toByte
 import java.util.*
 
 class BluetoothManagement(
         private val activity: Activity,
-        public var statePinProvider: () -> Boolean = { false },
-        public var statePinChange: (Boolean) -> Unit = {}) {
+        public var pinProvider: () -> Boolean = { false },
+        public var pinChange: (Boolean) -> Unit = {},
+        public var pwmProvider: () -> Int = { 0 },
+        public var pwmChange: (Int) -> Unit = {}) {
     private val TAG = BluetoothManagement::class.java.simpleName
 
     private var mBluetoothManager: BluetoothManager? = null
@@ -68,8 +74,11 @@ class BluetoothManagement(
 
         override fun onCharacteristicReadRequest(device: BluetoothDevice, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic) {
             when (characteristic.uuid) {
-                Constants.PIN_STATE -> {
-                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, ByteArray(1, { (if (statePinProvider.invoke()) 1 else 0).toByte() }))
+                PIN_STATE -> {
+                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, byteArrayOf(pinProvider.invoke().toByte()))
+                }
+                PWM_STATE -> {
+                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, byteArrayOf(pwmProvider.invoke().toByte()))
                 }
                 else -> {
                     Log.w(TAG, "Invalid Characteristic Read: " + characteristic.uuid)
@@ -80,8 +89,12 @@ class BluetoothManagement(
 
         override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
             when (characteristic.uuid) {
-                Constants.PIN_STATE -> {
-                    statePinChange.invoke(value[0] != 0.toByte())
+                PIN_STATE -> {
+                    pinChange.invoke(value[0] != 0.toByte())
+                    if (responseNeeded) mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
+                }
+                PWM_STATE -> {
+                    pwmChange.invoke(value[0].toInt())
                     if (responseNeeded) mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
                 }
                 else -> {
@@ -95,7 +108,7 @@ class BluetoothManagement(
     init {
         mBluetoothManager = activity.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = mBluetoothManager!!.adapter
-        bluetoothAdapter.name = Constants.DeviceName
+        bluetoothAdapter.name = DeviceName
         activity.registerReceiver(mBluetoothReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
         if (!bluetoothAdapter.isEnabled) {
             Log.d(TAG, "Bluetooth is currently disabled...enabling")
@@ -107,20 +120,20 @@ class BluetoothManagement(
         }
     }
 
-    private fun notifyRegisteredDevices(timestamp: Long, adjustReason: Byte) {
-        if (mRegisteredDevices.isEmpty()) {
-            Log.i(TAG, "No subscribers registered")
-            return
-        }
-        val exactTime = CarProfile.getExactTime(timestamp, adjustReason)
-
-        Log.i(TAG, "Sending update to " + mRegisteredDevices.size + " subscribers")
-        for (device in mRegisteredDevices) {
-            val timeCharacteristic = mBluetoothGattServer?.getService(CarProfile.TIME_SERVICE)?.getCharacteristic(CarProfile.CURRENT_TIME)
-            timeCharacteristic?.value = exactTime
-            mBluetoothGattServer?.notifyCharacteristicChanged(device, timeCharacteristic, false)
-        }
-    }
+//    private fun notifyRegisteredDevices(timestamp: Long, adjustReason: Byte) {
+//        if (mRegisteredDevices.isEmpty()) {
+//            Log.i(TAG, "No subscribers registered")
+//            return
+//        }
+//        val exactTime = CarProfile.getExactTime(timestamp, adjustReason)
+//
+//        Log.i(TAG, "Sending update to " + mRegisteredDevices.size + " subscribers")
+//        for (device in mRegisteredDevices) {
+//            val timeCharacteristic = mBluetoothGattServer?.getService(CarProfile.TIME_SERVICE)?.getCharacteristic(CarProfile.CURRENT_TIME)
+//            timeCharacteristic?.value = exactTime
+//            mBluetoothGattServer?.notifyCharacteristicChanged(device, timeCharacteristic, false)
+//        }
+//    }
 
     private fun startAdvertising() {
         val bluetoothAdapter = mBluetoothManager!!.adapter
@@ -141,7 +154,7 @@ class BluetoothManagement(
         val data = AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
                 .setIncludeTxPowerLevel(false)
-                .addServiceUuid(ParcelUuid(Constants.PIN_SERVICE))
+                .addServiceUuid(ParcelUuid(Constants.CAR_SERVICE))
                 .build()
 
         mBluetoothLeAdvertiser?.startAdvertising(settings, data, mAdvertiseCallback)

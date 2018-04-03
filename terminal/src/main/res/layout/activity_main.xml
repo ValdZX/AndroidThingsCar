@@ -5,7 +5,7 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context="ua.com.valdzx.car.terminal.TerminalActivity">
+        tools:context="ua.com.valdzx.car.terminal.TerminalActivity" android:id="@+id/seekPwm">
 
     <LinearLayout
             android:orientation="horizontal"
@@ -46,4 +46,18 @@
             android:layout_marginStart="16dp"
             app:layout_constraintTop_toTopOf="@+id/pinState"
             app:layout_constraintBottom_toBottomOf="@+id/pinState"/>
+    <SeekBar
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/seekBar" app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp" android:max="100"
+            android:progress="0" android:layout_marginTop="32dp" app:layout_constraintTop_toBottomOf="@+id/changePin"/>
+    <ProgressBar
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/pwmProgress"
+            app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp"
+            android:layout_marginTop="24dp" app:layout_constraintTop_toBottomOf="@+id/seekBar" android:max="100"/>
 </android.support.constraint.ConstraintLayout>
