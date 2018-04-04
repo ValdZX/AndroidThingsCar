@@ -11,17 +11,18 @@ import android.bluetooth.le.ScanResult
 import android.content.*
 import android.os.Handler
 import android.os.IBinder
-import androidx.content.systemService
+import androidx.core.content.systemService
 import ua.com.vald_zx.car.core.Constants
 import ua.com.vald_zx.car.core.Constants.CAR_SERVICE
-import ua.com.vald_zx.car.core.Constants.PIN_STATE
-import ua.com.vald_zx.car.core.Constants.PWM_STATE
-import ua.com.vald_zx.car.core.toByte
+import ua.com.vald_zx.car.core.Constants.LEFT_ENGINE_STATE
+import ua.com.vald_zx.car.core.Constants.RIGHT_ENGINE_STATE
+import ua.com.vald_zx.car.core.toBytes
+import ua.com.vald_zx.car.core.toDouble
 import java.util.*
 
 class BluetoothManager(private val activity: Activity,
-                       var pinRead: (Boolean) -> Unit = {},
-                       var pwmRead: (Int) -> Unit = {}) {
+                       var leftEngineRead: (Double) -> Unit = {},
+                       var rightEngineRead: (Double) -> Unit = {}) {
     val requestEnableBt = 1
     private val adapter: BluetoothAdapter
     private val scanner: BluetoothLeScanner
@@ -32,8 +33,8 @@ class BluetoothManager(private val activity: Activity,
     private lateinit var serviceConnection: ServiceConnection
     private var device: BluetoothDevice? = null
     var connectionListener: (Boolean) -> Unit = {}
-    private lateinit var pinState: BluetoothGattCharacteristic
-    private lateinit var pwmState: BluetoothGattCharacteristic
+    private lateinit var leftEngine: BluetoothGattCharacteristic
+    private lateinit var rightEngine: BluetoothGattCharacteristic
 
     var isConnected: Boolean = false
         private set(value) {
@@ -51,7 +52,7 @@ class BluetoothManager(private val activity: Activity,
     }
 
     init {
-        val manager = activity.systemService<BluetoothManager>()
+        val manager: BluetoothManager = activity.systemService()
         adapter = manager.adapter
         scanner = adapter.bluetoothLeScanner
     }
@@ -118,8 +119,8 @@ class BluetoothManager(private val activity: Activity,
                 BluetoothLeService.ACTION_GATT_DISCONNECTED -> isConnected = false
                 BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED -> loadState()
                 BluetoothLeService.ACTION_DATA_AVAILABLE -> {
-                    if (uuid == PIN_STATE) pinRead.invoke(pinState.value[0] != 0.toByte())
-                    if (uuid == PWM_STATE && pwmState.value.isNotEmpty()) pwmRead.invoke(pwmState.value[0].toInt())
+                    if (uuid == LEFT_ENGINE_STATE) leftEngineRead.invoke(leftEngine.value.toDouble())
+                    if (uuid == RIGHT_ENGINE_STATE) rightEngineRead.invoke(rightEngine.value.toDouble())
                 }
             }
         }
@@ -155,25 +156,30 @@ class BluetoothManager(private val activity: Activity,
         bluetoothLeService?.supportedGattServices?.forEach { service ->
             if (service.uuid == CAR_SERVICE) {
                 service.characteristics.forEach { char ->
-                    if (char.uuid == PIN_STATE) {
-                        pinState = char
-                        Handler().post { bluetoothLeService?.readCharacteristic(pinState) }
-                    } else if (char.uuid == PWM_STATE) {
-                        pwmState = char
-                        Handler().post { bluetoothLeService?.readCharacteristic(pwmState) }
+                    if (char.uuid == LEFT_ENGINE_STATE) {
+                        leftEngine = char
+                        Handler().post { bluetoothLeService?.readCharacteristic(leftEngine) }
+                    } else if (char.uuid == RIGHT_ENGINE_STATE) {
+                        rightEngine = char
+                        Handler().post { bluetoothLeService?.readCharacteristic(rightEngine) }
                     }
                 }
             }
         }
     }
 
-    fun setPinState(state: Boolean) {
-        pinState.value = byteArrayOf(state.toByte())
-        bluetoothLeService?.writeCharacteristic(pinState)
+    fun setEnginesState(left: Double, right: Double) {
+        setLeftEngineState(left)
+        setRightEngineState(right)
     }
 
-    fun setPwmState(state: Int) {
-        pwmState.value = byteArrayOf(state.toByte())
-        bluetoothLeService?.writeCharacteristic(pwmState)
+    fun setLeftEngineState(left: Double) {
+        leftEngine.value = left.toBytes()
+        bluetoothLeService?.writeCharacteristic(leftEngine)
+    }
+
+    fun setRightEngineState(right: Double) {
+        rightEngine.value = right.toBytes()
+        bluetoothLeService?.writeCharacteristic(rightEngine)
     }
 }

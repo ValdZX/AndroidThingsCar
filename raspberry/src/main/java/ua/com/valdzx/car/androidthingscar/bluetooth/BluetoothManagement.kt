@@ -14,17 +14,18 @@ import android.os.ParcelUuid
 import android.util.Log
 import ua.com.vald_zx.car.core.Constants
 import ua.com.vald_zx.car.core.Constants.DeviceName
-import ua.com.vald_zx.car.core.Constants.PIN_STATE
-import ua.com.vald_zx.car.core.Constants.PWM_STATE
-import ua.com.vald_zx.car.core.toByte
+import ua.com.vald_zx.car.core.Constants.LEFT_ENGINE_STATE
+import ua.com.vald_zx.car.core.Constants.RIGHT_ENGINE_STATE
+import ua.com.vald_zx.car.core.toBytes
+import ua.com.vald_zx.car.core.toDouble
 import java.util.*
 
 class BluetoothManagement(
         private val activity: Activity,
-        public var pinProvider: () -> Boolean = { false },
-        public var pinChange: (Boolean) -> Unit = {},
-        public var pwmProvider: () -> Int = { 0 },
-        public var pwmChange: (Int) -> Unit = {}) {
+        var leftEngineProvider: () -> Double = { 0.0 },
+        var leftEngineChange: (Double) -> Unit = {},
+        var rightEngineProvider: () -> Double = { 0.0 },
+        var rightEngineChange: (Double) -> Unit = {}) {
     private val TAG = BluetoothManagement::class.java.simpleName
 
     private var mBluetoothManager: BluetoothManager? = null
@@ -74,11 +75,11 @@ class BluetoothManagement(
 
         override fun onCharacteristicReadRequest(device: BluetoothDevice, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic) {
             when (characteristic.uuid) {
-                PIN_STATE -> {
-                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, byteArrayOf(pinProvider.invoke().toByte()))
+                RIGHT_ENGINE_STATE -> {
+                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, rightEngineProvider.invoke().toBytes())
                 }
-                PWM_STATE -> {
-                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, byteArrayOf(pwmProvider.invoke().toByte()))
+                LEFT_ENGINE_STATE -> {
+                    mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, leftEngineProvider.invoke().toBytes())
                 }
                 else -> {
                     Log.w(TAG, "Invalid Characteristic Read: " + characteristic.uuid)
@@ -89,12 +90,12 @@ class BluetoothManagement(
 
         override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
             when (characteristic.uuid) {
-                PIN_STATE -> {
-                    pinChange.invoke(value[0] != 0.toByte())
+                RIGHT_ENGINE_STATE -> {
+                    rightEngineChange.invoke(value.toDouble())
                     if (responseNeeded) mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
                 }
-                PWM_STATE -> {
-                    pwmChange.invoke(value[0].toInt())
+                LEFT_ENGINE_STATE -> {
+                    leftEngineChange.invoke(value.toDouble())
                     if (responseNeeded) mBluetoothGattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
                 }
                 else -> {

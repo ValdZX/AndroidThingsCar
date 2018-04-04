@@ -3,48 +3,27 @@ package ua.com.valdzx.car.androidthingscar
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
-import com.google.android.things.pio.Gpio
-import com.google.android.things.pio.PeripheralManager
-import com.google.android.things.pio.Pwm
 import ua.com.valdzx.car.androidthingscar.bluetooth.BluetoothManagement
+import ua.com.valdzx.car.androidthingscar.car.DcEngine
 import java.io.IOException
 
 
 class CarActivity : Activity() {
     private lateinit var bm: BluetoothManagement
-    lateinit var ledPin: Gpio
-    lateinit var ledPwm: Pwm
-    var pin: Boolean = false
-        set(value) {
-            field = value
-            ledPin.value = value
-            Log.i(TAG, "PIN STATE CHANGED -> $value")
-        }
-    var pwm: Int = 0
-        set(value) {
-            field = value
-            ledPwm.setPwmDutyCycle(value.toDouble())
-            Log.i(TAG, "PWM STATE CHANGED -> $value")
-        }
+    lateinit var leftEngine: DcEngine
+    lateinit var rightEngine: DcEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         bm = BluetoothManagement(this)
-        bm.pinProvider = { pin }
-        bm.pinChange = { pin = it }
-        bm.pwmProvider = { pwm }
-        bm.pwmChange = { pwm = it }
+        bm.leftEngineProvider = { leftEngine.state }
+        bm.leftEngineChange = { leftEngine.state = it }
+        bm.rightEngineProvider = { rightEngine.state }
+        bm.rightEngineChange = { rightEngine.state = it }
 
         try {
-            val manager = PeripheralManager.getInstance()
-            ledPin = manager.openGpio("BCM26")
-            ledPin.setDirection(Gpio.DIRECTION_OUT_INITIALLY_HIGH)
-            ledPin.value = false
-
-            ledPwm = manager.openPwm("PWM1")
-            ledPwm.setPwmFrequencyHz(120.0)
-            ledPwm.setPwmDutyCycle(0.0)
-            ledPwm.setEnabled(true)
+            leftEngine = DcEngine("BCM25", "BCM16", "BCM12")
+            rightEngine = DcEngine("BCM5", "BCM26", "BCM6")
         } catch (e: IOException) {
             Log.w(TAG, "Unable to access GPIO", e)
         }
@@ -59,6 +38,8 @@ class CarActivity : Activity() {
     override fun onDestroy() {
         super.onDestroy()
         bm.onDestroy()
+        leftEngine.onDestroy()
+        rightEngine.onDestroy()
     }
 
     companion object {

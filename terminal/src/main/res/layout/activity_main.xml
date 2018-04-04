@@ -32,32 +32,83 @@
             android:id="@+id/connectionState" android:layout_marginTop="8dp"
             app:layout_constraintTop_toTopOf="parent"
             android:layout_marginEnd="8dp" app:layout_constraintEnd_toStartOf="@+id/scanIndicator"/>
-    <RadioButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/pinState" android:layout_marginTop="12dp"
-            app:layout_constraintTop_toBottomOf="@+id/scanIndicator" app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="16dp" android:enabled="false" android:checked="false"/>
     <Button
-            android:text="@string/turn_on"
+            android:text="STOP LEFT"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/changePin" app:layout_constraintStart_toEndOf="@+id/pinState"
-            android:layout_marginStart="16dp"
-            app:layout_constraintTop_toTopOf="@+id/pinState"
-            app:layout_constraintBottom_toBottomOf="@+id/pinState"/>
-    <SeekBar
-            android:layout_width="0dp"
+            android:id="@+id/stopLeft"
+            app:layout_constraintStart_toEndOf="@+id/verticalSeekBarWrapper"
+            android:layout_marginStart="8dp" app:layout_constraintTop_toTopOf="@+id/verticalSeekBarWrapper"
+            app:layout_constraintBottom_toBottomOf="@+id/verticalSeekBarWrapper"/>
+    <com.h6ah4i.android.widget.verticalseekbar.VerticalSeekBarWrapper
+            android:layout_width="wrap_content"
+            android:layout_height="0dp" android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginStart="8dp" android:layout_marginTop="8dp"
+            android:id="@+id/verticalSeekBarWrapper" app:layout_constraintTop_toBottomOf="@+id/scanIndicator">
+        <com.h6ah4i.android.widget.verticalseekbar.VerticalSeekBar
+                android:id="@+id/leftSeek"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:splitTrack="false"
+                app:seekBarRotation="CW270" android:min="0" android:max="200" android:progress="100"/>
+    </com.h6ah4i.android.widget.verticalseekbar.VerticalSeekBarWrapper>
+    <com.h6ah4i.android.widget.verticalseekbar.VerticalSeekBarWrapper
+            android:layout_width="wrap_content"
+            android:layout_height="0dp" app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
+            app:layout_constraintBottom_toBottomOf="parent" android:layout_marginBottom="8dp"
+            android:layout_marginTop="8dp"
+            android:id="@+id/verticalSeekBarWrapper2" app:layout_constraintTop_toBottomOf="@+id/scanIndicator">
+        <com.h6ah4i.android.widget.verticalseekbar.VerticalSeekBar
+                android:id="@+id/rightSeek"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:splitTrack="false"
+                app:seekBarRotation="CW270" android:min="0" android:max="200" android:progress="100"/>
+    </com.h6ah4i.android.widget.verticalseekbar.VerticalSeekBarWrapper>
+    <Button
+            android:text="STOP RIGHT"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/seekBar" app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
-            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp" android:max="100"
-            android:progress="0" android:layout_marginTop="32dp" app:layout_constraintTop_toBottomOf="@+id/changePin"/>
-    <ProgressBar
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="0dp"
+            android:id="@+id/stopRight" app:layout_constraintEnd_toStartOf="@+id/verticalSeekBarWrapper2"
+            android:layout_marginEnd="4dp" app:layout_constraintTop_toTopOf="@+id/stopButton"
+            app:layout_constraintBottom_toBottomOf="@+id/stopButton"
+            app:layout_constraintVertical_bias="0.497"/>
+    <TextView
+            android:text="0.0"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/pwmProgress"
-            app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="8dp"
-            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp"
-            android:layout_marginTop="24dp" app:layout_constraintTop_toBottomOf="@+id/seekBar" android:max="100"/>
+            android:id="@+id/leftState" android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toTopOf="@+id/stopLeft" app:layout_constraintStart_toStartOf="@+id/stopLeft"
+            app:layout_constraintEnd_toEndOf="@+id/stopLeft"/>
+    <TextView
+            android:text="0.0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/rightState" android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toTopOf="@+id/stopRight" app:layout_constraintStart_toStartOf="@+id/stopRight"
+            app:layout_constraintEnd_toEndOf="@+id/stopRight"/>
+    <io.github.controlwear.virtual.joystick.android.JoystickView
+            xmlns:custom="http://schemas.android.com/apk/res-auto"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            custom:JV_buttonColor="#FF6E40"
+            custom:JV_buttonSizeRatio="15%"
+            custom:JV_borderColor="#00796B"
+            custom:JV_backgroundColor="#009688"
+            custom:JV_borderWidth="4dp"
+            custom:JV_fixedCenter="false" android:layout_marginBottom="8dp"
+            custom:layout_constraintBottom_toBottomOf="parent"
+            android:id="@+id/joyStick" android:layout_marginTop="8dp"
+            custom:layout_constraintTop_toBottomOf="@+id/stopRight" custom:layout_constraintEnd_toEndOf="@+id/stopRight"
+            android:layout_marginEnd="8dp" custom:layout_constraintStart_toEndOf="@+id/verticalSeekBarWrapper"
+            android:layout_marginStart="8dp"/>
+    <Button
+            android:text="Stop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/stopButton" app:layout_constraintStart_toEndOf="@+id/stopLeft"
+            android:layout_marginStart="8dp" app:layout_constraintEnd_toStartOf="@+id/stopRight"
+            android:layout_marginEnd="8dp" app:layout_constraintHorizontal_bias="0.518"
+            app:layout_constraintTop_toTopOf="@+id/stopLeft" app:layout_constraintBottom_toBottomOf="@+id/stopLeft"/>
 </android.support.constraint.ConstraintLayout>

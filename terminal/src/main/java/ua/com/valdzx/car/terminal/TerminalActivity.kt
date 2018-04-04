@@ -7,11 +7,11 @@ import android.support.v4.content.PermissionChecker.PERMISSION_GRANTED
 import android.support.v7.app.AppCompatActivity
 import android.view.View.GONE
 import android.view.View.VISIBLE
-import android.widget.SeekBar
 import com.marcoscg.easypermissions.EasyPermissions
 import kotlinx.android.synthetic.main.activity_main.*
 import ua.com.vald_zx.car.core.Constants.DeviceName
 import ua.com.valdzx.car.terminal.bluetooth.BluetoothManager
+import ua.com.valdzx.car.terminal.utils.EmptyOnSeekBarChangeListener
 
 class TerminalActivity : AppCompatActivity() {
 
@@ -24,18 +24,17 @@ class TerminalActivity : AppCompatActivity() {
             if (it) loadCurrentState()
             if (!it) findDevice()
         }
-        manager.pinRead = { updatePinState(it) }
-        manager.pwmRead = { updatePwmState(it) }
+        manager.leftEngineRead = { updateLeftState(it) }
+        manager.rightEngineRead = { updateRightState(it) }
         manager
     }
 
-    private fun updatePinState(currentPinState: Boolean) {
-        pinState.isChecked = currentPinState
-        changePin.setText(if (currentPinState) R.string.turn_off else R.string.turn_on)
+    private fun updateLeftState(state: Double) {
+        leftState.text = state.toString()
     }
 
-    private fun updatePwmState(pwmState: Int) {
-        pwmProgress.progress = pwmState
+    private fun updateRightState(state: Double) {
+        rightState.text = state.toString()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,23 +42,24 @@ class TerminalActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         requestPermission()
 
-        changePin.setOnClickListener {
-            bluetoothManager.setPinState(!pinState.isChecked)
+        stopButton.setOnClickListener {
+            rightSeek.progress = 100
+            leftSeek.progress = 100
+            bluetoothManager.setEnginesState(0.0, 0.0)
+        }
+        stopRight.setOnClickListener {
+            rightSeek.progress = 100
+            bluetoothManager.setRightEngineState(0.0)
+        }
+        stopLeft.setOnClickListener {
+            leftSeek.progress = 100
+            bluetoothManager.setLeftEngineState(0.0)
         }
 
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                bluetoothManager.setPwmState(progress)
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                //TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                //TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-            }
-
+        leftSeek.setOnSeekBarChangeListener(EmptyOnSeekBarChangeListener { bluetoothManager.setLeftEngineState((it - 100).toDouble() / 100.0) })
+        rightSeek.setOnSeekBarChangeListener(EmptyOnSeekBarChangeListener { bluetoothManager.setRightEngineState((it - 100).toDouble() / 100.0) })
+        joyStick.setOnMoveListener({ a, s ->
+            //TODO
         })
     }
 
